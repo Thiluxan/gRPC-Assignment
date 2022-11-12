@@ -12,8 +12,6 @@ var packageDefinition = protoLoader.loadSync(PROTO_PATH,{
 
 var playersProto = grpc.loadPackageDefinition(packageDefinition)
 
-const {v4:uuidv4} = require('uuid')
-
 const server = new grpc.Server()
 
 const players = [
@@ -39,7 +37,7 @@ server.addService(playersProto.PlayerService.service,{
         callback(null, {players})
     },
 
-    get:(call,callback) => {
+    getOnePlayer:(call,callback) => {
         let player = players.find(n => n.id == call.request.id);
         if(player){
             callback(null,player)
@@ -53,7 +51,6 @@ server.addService(playersProto.PlayerService.service,{
 
     insert: (call, callback) => {
         let player = call.request;
-        player.id == uuidv4();
         players.push(player)
         callback(null,player);
     },
@@ -73,7 +70,7 @@ server.addService(playersProto.PlayerService.service,{
     },
 
     remove: (call,callback) => {
-        let playerIndex = players.findIndex(n => n.id == player.id)
+        let playerIndex = players.findIndex(n => n.id == call.request.id)
         if(playerIndex != -1){
             players.splice(playerIndex,1)
             callback(null,{})
