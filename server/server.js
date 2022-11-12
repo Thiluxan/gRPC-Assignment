@@ -1,18 +1,18 @@
 const PROTO_PATH = "./players.proto";
 
-const grpc = require('grpc');
-const protoLoader = require('@grpc/proto-loader')
+var grpc = require('@grpc/grpc-js');
+var protoLoader = require("@grpc/proto-loader");
 
-const packageDefinition = protoLoader.loadSync(PROTO_PATH,{
+var packageDefinition = protoLoader.loadSync(PROTO_PATH,{
     keepCase:true,
     longs:String,
     enums:String,
     arrays:true
 });
 
-const playersProto = grpc.loadPackageDefinition(packageDefinition)
+var playersProto = grpc.loadPackageDefinition(packageDefinition)
 
-const {v4:uuid} = require('uuid')
+const {v4:uuidv4} = require('uuid')
 
 const server = new grpc.Server()
 
@@ -33,3 +33,64 @@ const players = [
         country:'Sri Lanka'
     }
 ]
+
+server.addService(playersProto.PlayerService.service,{
+    getAll:(_,callback) => {
+        callback(null, {players})
+    },
+
+    get:(call,callback) => {
+        let player = players.find(n => n.id == call.request.id);
+        if(player){
+            callback(null,player)
+        } else {
+            callback({
+                code:grpc.status.NOT_FOUND,
+                details:"Not Found"
+            })
+        }
+    },
+
+    insert: (call, callback) => {
+        let player = call.request;
+        player.id == uuidv4();
+        players.push(player)
+        callback(null,player);
+    },
+
+    update:(call,callback) => {
+        let player = players.find(n => n.id == call.request.id)
+        if(player){
+            player.name = call.request.name,
+            player.country = call.request.country
+            callback(null, player)
+        } else {
+            callback({
+                code:grpc.status.NOT_FOUND,
+                details:'Not Found'
+            })
+        }
+    },
+
+    remove: (call,callback) => {
+        let playerIndex = players.findIndex(n => n.id == player.id)
+        if(playerIndex != -1){
+            players.splice(playerIndex,1)
+            callback(null,{})
+        } else {
+            callback({
+                code:grpc.status.NOT_FOUND,
+                details:"Not Found"
+            })
+        }
+    }
+})
+
+server.bindAsync(
+    "127.0.0.1:50051",
+    grpc.ServerCredentials.createInsecure(),
+    (error, port) => {
+        console.log("Server running at http://127.0.0.1:50051");
+        server.start();
+    }
+);
